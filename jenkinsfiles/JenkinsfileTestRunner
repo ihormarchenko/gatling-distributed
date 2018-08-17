@@ -33,6 +33,7 @@ node("${NODE}"){
             stage('save image for instances') {
                 sh  """
                     docker save gatling/gatling-node -o `pwd`/terraform-scripts/gatling-node/gatling-node.tar
+                    docker save logstash/logstash -o `pwd`/terraform-scripts/gatling-node/logstash.tar
                     """
             }
 
