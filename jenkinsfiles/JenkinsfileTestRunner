@@ -1,5 +1,6 @@
 IAM_INSTANCE_PROFILE = params.IAM_INSTANCE_PROFILE ?: "jmeter_server"
 TERRAFORM_CMD_PARAMS = "-var 'iam_instance_profile=${IAM_INSTANCE_PROFILE}' -var 'instance_type=${INSTANCE_TYPE}' -var 'env=${TEST_ENV}' -var 'subnet_id=${AWS_SUBNET_ID}' -var 'vpc_security_group_ids=${AWS_VPC_SECURITY_GROUP_IDS}' -var 'count=${AWS_INSTANCE_COUNT}'"
+RUN_TEST_ON_MASTER = params.RUN_TEST_ON_MASTER ?: false
 GATLING_COMMAND = params.GATLING_COMMAND
 //Destroy terraform resources
 def destroyResources() {
@@ -13,7 +14,7 @@ def destroyResources() {
 
 def isDestroyed = false
 node("${NODE}"){
-    env.TERRAFORM_CMD = 'docker run --rm --network=host -w /app -v ${HOME}/.aws:/root/.aws -v ${HOME}/.ssh:/root/.ssh -v ${PWD}/terraform-scripts/jmeter-servers:/app hashicorp/terraform:light'
+    env.TERRAFORM_CMD = 'docker run --rm --network=host -w /app -v ${HOME}/.aws:/root/.aws -v ${HOME}/.ssh:/root/.ssh -v ${PWD}/terraform-scripts/gatling-node:/app hashicorp/terraform:light'
     try {
 
         if(RUN_TEST_ON_MASTER == true){
@@ -60,15 +61,17 @@ node("${NODE}"){
             try{
                 stage('Run test') {
                     sh  """
-                        chmod +x start-distributed-test.sh
-                        start-distributed-test.sh "\$(ips=`${TERRAFORM_CMD} output instance_private_ips` && echo \$ips | sed -e 's/\\s//g')" "${GATLING_COMMAND}"
+                        chmod +x ${WORKSPACE}/start-distributed-test.sh
+                        ${WORKSPACE}/start-distributed-test.sh "\$(ips=`${TERRAFORM_CMD} output instance_private_ips` && echo \$ips | sed -e 's/\\s//g')" "${GATLING_COMMAND}"
                     """
                 }
             } catch (Exception e) {
                 echo "Test was interrupted"
             }
 
-            destroyResources()
+            if(!isDestroyed){
+                destroyResources()
+            }
             isDestroyed = true
         }
 
