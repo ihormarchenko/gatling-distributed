@@ -69,7 +69,7 @@ node("${NODE}"){
                 echo "Test was interrupted"
             }
 
-            //destroyResources()
+            destroyResources()
             isDestroyed = true
         }
 
