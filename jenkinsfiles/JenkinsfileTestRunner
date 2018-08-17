@@ -61,8 +61,8 @@ node("${NODE}"){
             try{
                 stage('Run test') {
                     sh  """
-                        chmod +x start-distributed-test.sh
-                        start-distributed-test.sh "\$(ips=`${TERRAFORM_CMD} output instance_private_ips` && echo \$ips | sed -e 's/\\s//g')" "${GATLING_COMMAND}"
+                        chmod +x ${WORKSPACE}/start-distributed-test.sh
+                        ${WORKSPACE}/start-distributed-test.sh "\$(ips=`${TERRAFORM_CMD} output instance_private_ips` && echo \$ips | sed -e 's/\\s//g')" "${GATLING_COMMAND}"
                     """
                 }
             } catch (Exception e) {
