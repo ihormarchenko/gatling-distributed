@@ -13,7 +13,7 @@ if [[ -n $1 ]]; then
     for ip in $ips
     do
         echo "Start command: ssh -o StrictHostKeyChecking=no -i ${WORKSPACE}/terraform-scripts/jmeter-servers/ssh-key/id_rsa_terraform ec2-user@$ip "$2" &"
-        ssh -o StrictHostKeyChecking=no -i ${WORKSPACE}/terraform-scripts/jmeter-servers/ssh-key/id_rsa_terraform ec2-user@$ip "$2" &
+        sudo ssh -o StrictHostKeyChecking=no -i ${WORKSPACE}/terraform-scripts/jmeter-servers/ssh-key/id_rsa_terraform ec2-user@$ip "$2" &
     done
     wait
 else
