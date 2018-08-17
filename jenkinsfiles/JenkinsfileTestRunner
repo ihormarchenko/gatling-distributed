@@ -1,0 +1,111 @@
+IAM_INSTANCE_PROFILE = params.IAM_INSTANCE_PROFILE ?: "jmeter_server"
+TERRAFORM_CMD_PARAMS = "-var 'iam_instance_profile=${IAM_INSTANCE_PROFILE}' -var 'instance_type=${INSTANCE_TYPE}' -var 'env=${TEST_ENV}' -var 'subnet_id=${AWS_SUBNET_ID}' -var 'vpc_security_group_ids=${AWS_VPC_SECURITY_GROUP_IDS}' -var 'count=${AWS_INSTANCE_COUNT}'"
+GATLING_COMMAND = params.GATLING_COMMAND
+//Destroy terraform resources
+def destroyResources() {
+    stage('destroy') {
+        echo "Destroy resources"
+        sh  """
+            ${TERRAFORM_CMD} destroy -lock=false -input=true -auto-approve ${TERRAFORM_CMD_PARAMS}
+            """
+    }
+}
+
+def isDestroyed = false
+node("${NODE}"){
+    env.TERRAFORM_CMD = 'docker run --rm --network=host -w /app -v ${HOME}/.aws:/root/.aws -v ${HOME}/.ssh:/root/.ssh -v ${PWD}/terraform-scripts/jmeter-servers:/app hashicorp/terraform:light'
+    try {
+
+        if(RUN_TEST_ON_MASTER == true){
+
+        }else{
+            stage('checkout repo') {
+                checkout scm
+            }
+
+            stage('pull latest light terraform image') {
+                sh  """
+                    docker pull hashicorp/terraform:light
+                    """
+            }
+
+            stage('save image for instances') {
+                sh  """
+                    docker save gatling/gatling-node -o `pwd`/terraform-scripts/gatling-node/gatling-node.tar
+                    """
+            }
+
+            stage('init') {
+                sh  """
+                ${TERRAFORM_CMD} init -backend=true -input=false -var 'iam_instance_profile=${IAM_INSTANCE_PROFILE}' ${TERRAFORM_CMD_PARAMS}
+                """
+            }
+            stage('plan') {
+                sh  """
+                ${TERRAFORM_CMD} plan -out=tfplan -input=false -var 'iam_instance_profile=${IAM_INSTANCE_PROFILE}' ${TERRAFORM_CMD_PARAMS}
+                """
+            }
+            try{
+                stage('apply') {
+                    sh  """
+                    ${TERRAFORM_CMD} apply -lock=false -input=true -parallelism=${AWS_INSTANCE_COUNT} tfplan
+                    """
+                }
+            }catch (Exception e){
+                destroyResources()
+                isDestroyed = true
+                throw e
+            }
+
+            try{
+                stage('Run test') {
+                    sh  """
+                        chmod +x start-distributed-test.sh
+                        start-distributed-test.sh "\$(ips=`${TERRAFORM_CMD} output instance_private_ips` && echo \$ips | sed -e 's/\\s//g')" "${GATLING_COMMAND}"
+                    """
+                }
+            } catch (Exception e) {
+                echo "Test was interrupted"
+            }
+
+            destroyResources()
+            isDestroyed = true
+        }
+
+    } catch (Exception interruptEx) {
+        if(!isDestroyed){
+            destroyResources()
+        }
+        currentBuild.result = "FAILED"
+        throw interruptEx
+    } finally {
+        // Success or failure, always send notifications
+        // notifyBuild(currentBuild.result)
+    }
+}
+
+def notifyBuild(String buildStatus = 'STARTED') {
+    // build status of null means successful
+    buildStatus =  buildStatus ?: 'SUCCESSFUL'
+
+    // Default values
+    def colorName = 'RED'
+    def colorCode = '#FF0000'
+    def subject = "${buildStatus}: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'"
+    def summary = "${subject} (${env.BUILD_URL})"
+
+    // Override default values based on build status
+    if (buildStatus == 'STARTED') {
+        color = 'YELLOW'
+        colorCode = '#FFFF00'
+    } else if (buildStatus == 'SUCCESSFUL') {
+        color = 'GREEN'
+        colorCode = '#00FF00'
+    } else {
+        color = 'RED'
+        colorCode = '#FF0000'
+    }
+
+    // Send notifications
+    slackSend (color: colorCode, message: summary)
+}
