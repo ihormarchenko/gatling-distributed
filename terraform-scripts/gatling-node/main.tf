@@ -26,6 +26,11 @@ resource "aws_instance" "gatling-node" {
   }
   
   provisioner "file" {
+    source      = "/${path.module}/logstash.tar"
+    destination = "~/logstash.tar"
+  }
+
+  provisioner "file" {
     source      = "/${path.module}/gatling-node.tar"
     destination = "~/gatling-node.tar"
   }
@@ -33,6 +38,8 @@ resource "aws_instance" "gatling-node" {
   provisioner "remote-exec" {
     inline = [
       "cd ~",
+      "docker load -i logstash.tar",
+      "docker run -d --name logstash -v gatling-logs:/gatling-logs/ logstash/logstash",
       "docker load -i gatling-node.tar"
     ]
   }
