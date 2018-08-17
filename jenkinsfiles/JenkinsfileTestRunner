@@ -14,7 +14,7 @@ def destroyResources() {
 
 def isDestroyed = false
 node("${NODE}"){
-    env.TERRAFORM_CMD = 'docker run --rm --network=host -w /app -v ${HOME}/.aws:/root/.aws -v ${HOME}/.ssh:/root/.ssh -v ${PWD}/terraform-scripts/jmeter-servers:/app hashicorp/terraform:light'
+    env.TERRAFORM_CMD = 'docker run --rm --network=host -w /app -v ${HOME}/.aws:/root/.aws -v ${HOME}/.ssh:/root/.ssh -v ${PWD}/terraform-scripts/gatling-node:/app hashicorp/terraform:light'
     try {
 
         if(RUN_TEST_ON_MASTER == true){
