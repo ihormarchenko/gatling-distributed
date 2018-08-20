@@ -22,6 +22,9 @@ def isDestroyed = false
 node("${NODE}"){
     env.TERRAFORM_CMD = 'docker run --rm --network=host -w /app -v ${HOME}/.aws:/root/.aws -v ${HOME}/.ssh:/root/.ssh -v ${PWD}/terraform-scripts/gatling-node:/app hashicorp/terraform:light'
     try {
+        stage('checkout repo') {
+            checkout scm
+        }
 
         if(RUN_TEST_ON_MASTER == true){
             try {
@@ -36,10 +39,6 @@ node("${NODE}"){
                 stopContainer()
             }
         }else{
-            stage('checkout repo') {
-                checkout scm
-            }
-
             stage('pull latest light terraform image') {
                 sh  """
                     docker pull hashicorp/terraform:light
