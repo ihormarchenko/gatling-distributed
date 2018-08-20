@@ -25,9 +25,12 @@ node("${NODE}"){
 
         if(RUN_TEST_ON_MASTER == true){
             try {
-                sh '''
-                    ${DOCKER_GATLING_COMMAND}
-                '''
+                stage('Run test') {
+                    sh """
+                        echo "Starting..."
+                        ${DOCKER_GATLING_COMMAND}
+                    """
+                }
             } catch (Exception e) {
                 echo "Test was interrupted"
                 stopContainer()
