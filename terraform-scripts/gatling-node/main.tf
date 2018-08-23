@@ -38,8 +38,8 @@ resource "aws_instance" "gatling-node" {
   provisioner "remote-exec" {
     inline = [
       "cd ~",
-      "docker load -i logstash.tar",
-      "docker run -d --name logstash -v gatling-logs:/gatling-logs/ logstash/logstash",
+      "docker load -i fluentd.tar",
+      "docker run -d --name fluentd -e TEST_ENV=${var.env} -v gatling-logs:/gatling-logs/ fluent/fluentd",
       "docker load -i gatling-node.tar"
     ]
   }
