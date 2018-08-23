@@ -39,7 +39,7 @@ resource "aws_instance" "gatling-node" {
     inline = [
       "cd ~",
       "docker load -i fluentd.tar",
-      "docker run -d --name fluentd -e TEST_ENV=${var.env} -v gatling-logs:/gatling-logs/ fluent/fluentd",
+      "docker run -d --name fluentd -e TEST_ENV=${var.env} -v jmeter-logs:/jmeter-logs/ -v gatling-logs:/gatling-logs/ fluent/fluentd",
       "docker load -i gatling-node.tar"
     ]
   }
