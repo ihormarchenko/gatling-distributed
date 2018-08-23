@@ -26,8 +26,8 @@ resource "aws_instance" "gatling-node" {
   }
   
   provisioner "file" {
-    source      = "/${path.module}/logstash.tar"
-    destination = "~/logstash.tar"
+    source      = "/${path.module}/fluentd.tar"
+    destination = "~/fluentd.tar"
   }
 
   provisioner "file" {
