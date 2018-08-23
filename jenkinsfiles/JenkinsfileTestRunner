@@ -6,9 +6,9 @@ DOCKER_GATLING_COMMAND = "docker run --rm --name '${JOB_BASE_NAME}-${BUILD_ID}' 
 def destroyResources() {
     stage('destroy') {
         echo "Destroy resources"
-        sh  """
-            ${TERRAFORM_CMD} destroy -lock=false -input=true -auto-approve ${TERRAFORM_CMD_PARAMS}
-            """
+        //sh  """
+        //    ${TERRAFORM_CMD} destroy -lock=false -input=true -auto-approve ${TERRAFORM_CMD_PARAMS}
+        //    """
     }
 }
 
