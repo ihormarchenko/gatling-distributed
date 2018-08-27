@@ -1,0 +1,20 @@
+node("${NODE}") {
+    def gatling
+    try {
+        stage('Clone repository') {
+            checkout scm
+        }
+        stage('Build image') {
+            gatling = docker.build("gatling/gatling-node")
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
+    } finally {
+        stage('Clear'){
+            sh '''
+                IDS=`docker images -f "dangling=true" -q`
+                if [[ $IDS != "" ]]; then docker rmi $IDS; fi
+            '''
+        }
+    }
+}
