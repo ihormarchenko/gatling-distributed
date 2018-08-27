@@ -11,16 +11,17 @@ RUN_TEST_ON_MASTER = params.RUN_TEST_ON_MASTER ?: false
 GATLING_COMMAND = params.GATLING_COMMAND ?: false
 
 
-def DOCKER_GATLING_COMMAND = null
+DOCKER_GATLING_COMMAND = null
 def buildDockerGatlingCommand(){
     if (GATLING_COMMAND == null) {
         throw NullPointerException("Param GATLING_COMMAND must be specified.")
     }
-    DOCKER_GATLING_COMMAND = "docker run --rm --name '${JOB_BASE_NAME}-${BUILD_ID}' -v gatling-logs:/opt/gatling/results gatling/gatling-node -rf '/opt/gatling/results/${JOB_BASE_NAME}-${BUILD_ID}' ${GATLING_COMMAND}"
+    DOCKER_GATLING_COMMAND = "docker run --rm --name '${JOB_BASE_NAME}-${BUILD_ID}' -v gatling-logs:/opt/gatling/results gatling/gatling-node -rf /opt/gatling/results/${JOB_BASE_NAME}-${BUILD_ID} ${GATLING_COMMAND}"
+    echo "DOCKER_GATLING_COMMAND=${DOCKER_GATLING_COMMAND}"
 }
 
 
-def TERRAFORM_CMD_PARAMS = null
+TERRAFORM_CMD_PARAMS = null
 def buildTerraformParams(){
     if (TEST_ENV == null) {
         throw NullPointerException("Param TEST_ENV must be specified.")
