@@ -11,34 +11,12 @@ RUN_TEST_ON_MASTER = params.RUN_TEST_ON_MASTER ?: false
 GATLING_COMMAND = params.GATLING_COMMAND ?: false
 
 
-def clearLogFolder(){
-    try {
-        stage('Clear an old logfile'){
-            sh '''
-                volume_ids=`docker volume ls --filter "name=gatling-logs" -q`
-                if [[ $volume_ids != "" ]]; then path=`docker volume inspect $volume_ids --format '{{ .Mountpoint }}'`; fi
-                for var in $path
-                do
-                sudo rm -rf $var/*"
-                echo "Folder was cleared."
-                done
-            '''
-        }
-    } catch (Exception e) {
-        echo "======================================"
-        echo "Folder or file do not exist'"
-        echo e.getMessage()
-        echo "======================================"
-    }
-}
-
-
 DOCKER_GATLING_COMMAND = null
 def buildDockerGatlingCommand(){
     if (GATLING_COMMAND == null) {
         throw NullPointerException("Param GATLING_COMMAND must be specified.")
     }
-    DOCKER_GATLING_COMMAND = "docker run --rm --name '${JOB_BASE_NAME}-${BUILD_ID}' -v gatling-logs:/opt/gatling/results gatling/gatling-node ${GATLING_COMMAND}"
+    DOCKER_GATLING_COMMAND = "docker run --rm --name '${JOB_BASE_NAME}-${BUILD_ID}' -v gatling-logs:/opt/gatling/results/${JOB_BASE_NAME}-${BUILD_ID} gatling/gatling-node -rf /opt/gatling/results/${JOB_BASE_NAME}-${BUILD_ID} ${GATLING_COMMAND}"
     echo "DOCKER_GATLING_COMMAND=${DOCKER_GATLING_COMMAND}"
 }
 
@@ -94,7 +72,6 @@ node("${NODE}"){
             checkout scm
         }
         if(RUN_TEST_ON_MASTER == true){
-            clearLogFolder()
             isDestroyed = true
             try {
                 stage('Run test') {
