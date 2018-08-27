@@ -91,7 +91,6 @@ node("${NODE}"){
             checkout scm
         }
         if(RUN_TEST_ON_MASTER == true){
-            clearGatlingLogs()
             isDestroyed = true
             try {
                 stage('Run test') {
