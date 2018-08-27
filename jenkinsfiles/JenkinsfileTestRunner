@@ -7,6 +7,7 @@ AWS_VPC_SECURITY_GROUP_IDS = params.AWS_VPC_SECURITY_GROUP_IDS ?: null
 AWS_INSTANCE_COUNT = params.AWS_INSTANCE_COUNT ?: null
 
 
+GENERATE_HTML_REPORT = params.GENERATE_HTML_REPORT ?: false
 RUN_TEST_ON_MASTER = params.RUN_TEST_ON_MASTER ?: false
 GATLING_COMMAND = params.GATLING_COMMAND ?: false
 
@@ -131,7 +132,9 @@ node("${NODE}"){
                         ${DOCKER_GATLING_COMMAND}
                     """
                 }
-            archiveAndGenerateReport()
+            if(GENERATE_HTML_REPORT == true) {
+                archiveAndGenerateReport()
+            }
             } catch (Exception e) {
                 echo "Test was interrupted"
                 stopContainer()
