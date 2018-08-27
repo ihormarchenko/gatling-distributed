@@ -1,7 +1,51 @@
+// Params for Terraform
 IAM_INSTANCE_PROFILE = params.IAM_INSTANCE_PROFILE ?: "jmeter_server"
-TERRAFORM_CMD_PARAMS = "-var 'iam_instance_profile=${IAM_INSTANCE_PROFILE}' -var 'instance_type=${INSTANCE_TYPE}' -var 'env=${TEST_ENV}' -var 'subnet_id=${AWS_SUBNET_ID}' -var 'vpc_security_group_ids=${AWS_VPC_SECURITY_GROUP_IDS}' -var 'count=${AWS_INSTANCE_COUNT}'"
+INSTANCE_TYPE = params.INSTANCE_TYPE ?: null
+TEST_ENV = params.TEST_ENV ?: null
+AWS_SUBNET_ID = params.AWS_SUBNET_ID ?: null
+AWS_VPC_SECURITY_GROUP_IDS = params.AWS_VPC_SECURITY_GROUP_IDS ?: null
+AWS_INSTANCE_COUNT = params.AWS_INSTANCE_COUNT ?: null
+
+
 RUN_TEST_ON_MASTER = params.RUN_TEST_ON_MASTER ?: false
-DOCKER_GATLING_COMMAND = "docker run --rm --name '${JOB_BASE_NAME}-${BUILD_ID}' -v gatling-logs:/opt/gatling/results gatling/gatling-node ${GATLING_COMMAND}"
+GATLING_COMMAND = params.GATLING_COMMAND ?: false
+
+
+def DOCKER_GATLING_COMMAND = null
+def buildDockerGatlingCommand(){
+    if (GATLING_COMMAND == null) {
+        throw NullPointerException("Param GATLING_COMMAND must be specified.")
+    }
+    DOCKER_GATLING_COMMAND = "docker run --rm --name '${JOB_BASE_NAME}-${BUILD_ID}' -v gatling-logs:/opt/gatling/results gatling/gatling-node -rf '/opt/gatling/results/${JOB_BASE_NAME}-${BUILD_ID}' ${GATLING_COMMAND}"
+}
+
+
+def TERRAFORM_CMD_PARAMS = null
+def buildTerraformParams(){
+    if (TEST_ENV == null) {
+        throw NullPointerException("Param TEST_ENV must be specified.")
+    }
+    if (AWS_SUBNET_ID == null) {
+        throw NullPointerException("Param AWS_SUBNET_ID must be specified.")
+    }
+    if (AWS_VPC_SECURITY_GROUP_IDS == null) {
+        throw NullPointerException("Param AWS_VPC_SECURITY_GROUP_IDS must be specified.")
+    }
+    if (INSTANCE_TYPE == null) {
+        echo "Param INSTANCE_TYPE is not specified, default 't2.micro'"
+        INSTANCE_TYPE = "t2.micro"
+    }
+    if (AWS_INSTANCE_COUNT == null) {
+        echo "Param AWS_INSTANCE_COUNT is not specified, default '1'"
+        AWS_INSTANCE_COUNT = "1"
+    }
+
+    TERRAFORM_CMD_PARAMS = "-var 'iam_instance_profile=${IAM_INSTANCE_PROFILE}' -var 'instance_type=${INSTANCE_TYPE}' -var 'env=${TEST_ENV}' -var 'subnet_id=${AWS_SUBNET_ID}' -var 'vpc_security_group_ids=${AWS_VPC_SECURITY_GROUP_IDS}' -var 'count=${AWS_INSTANCE_COUNT}'"
+}
+
+
+
+
 //Destroy terraform resources
 def destroyResources() {
     stage('destroy') {
@@ -21,12 +65,13 @@ def stopContainer(){
 def isDestroyed = false
 node("${NODE}"){
     env.TERRAFORM_CMD = 'docker run --rm --network=host -w /app -v ${HOME}/.aws:/root/.aws -v ${HOME}/.ssh:/root/.ssh -v ${PWD}/terraform-scripts/gatling-node:/app hashicorp/terraform:light'
+    buildDockerGatlingCommand()
     try {
         stage('checkout repo') {
             checkout scm
         }
-
         if(RUN_TEST_ON_MASTER == true){
+            isDestroyed = true
             try {
                 stage('Run test') {
                     sh """
@@ -39,6 +84,7 @@ node("${NODE}"){
                 stopContainer()
             }
         }else{
+            buildTerraformParams()
             stage('pull latest light terraform image') {
                 sh  """
                     docker pull hashicorp/terraform:light
@@ -54,12 +100,12 @@ node("${NODE}"){
 
             stage('init') {
                 sh  """
-                ${TERRAFORM_CMD} init -backend=true -input=false -var 'iam_instance_profile=${IAM_INSTANCE_PROFILE}' ${TERRAFORM_CMD_PARAMS}
+                ${TERRAFORM_CMD} init -backend=true -input=false ${TERRAFORM_CMD_PARAMS}
                 """
             }
             stage('plan') {
                 sh  """
-                ${TERRAFORM_CMD} plan -out=tfplan -input=false -var 'iam_instance_profile=${IAM_INSTANCE_PROFILE}' ${TERRAFORM_CMD_PARAMS}
+                ${TERRAFORM_CMD} plan -out=tfplan -input=false ${TERRAFORM_CMD_PARAMS}
                 """
             }
             try{
