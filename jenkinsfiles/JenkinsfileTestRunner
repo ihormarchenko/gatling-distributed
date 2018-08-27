@@ -18,7 +18,7 @@ def deleteGatlingLog(){
                 if [[ $volume_ids != "" ]]; then path=`docker volume inspect $volume_ids --format '{{ .Mountpoint }}'`; fi
                 for var in $path
                 do
-                    sudo rm -rf var/${JOB_BASE_NAME}-${BUILD_ID}
+                    sudo rm -rf $var/${JOB_BASE_NAME}
                 done
             '''
         }
@@ -35,7 +35,7 @@ def buildDockerGatlingCommand(){
     if (GATLING_COMMAND == null) {
         throw NullPointerException("Param GATLING_COMMAND must be specified.")
     }
-    DOCKER_GATLING_COMMAND = "docker run --rm --name '${JOB_BASE_NAME}-${BUILD_ID}' -v gatling-logs:/opt/gatling/results/ gatling/gatling-node -rf /opt/gatling/results/${JOB_BASE_NAME}-${BUILD_ID} ${GATLING_COMMAND}"
+    DOCKER_GATLING_COMMAND = "docker run --rm --name '${JOB_BASE_NAME}-${BUILD_ID}' -v gatling-logs:/opt/gatling/results/ gatling/gatling-node -rf /opt/gatling/results/${JOB_BASE_NAME} ${GATLING_COMMAND}"
     echo "DOCKER_GATLING_COMMAND=${DOCKER_GATLING_COMMAND}"
 }
 
@@ -91,6 +91,7 @@ node("${NODE}"){
             checkout scm
         }
         if(RUN_TEST_ON_MASTER == true){
+            deleteGatlingLog()
             isDestroyed = true
             try {
                 stage('Run test') {
@@ -102,8 +103,6 @@ node("${NODE}"){
             } catch (Exception e) {
                 echo "Test was interrupted"
                 stopContainer()
-            }finally{
-                deleteGatlingLog()
             }
         }else{
             buildTerraformParams()
