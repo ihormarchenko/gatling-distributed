@@ -16,7 +16,7 @@ GATLING_VOLUME = null
 DOCKER_GATLING_COMMAND = null
 def buildDockerGatlingCommand(){
     if (GATLING_COMMAND == null) {
-        throw NullPointerException("Param GATLING_COMMAND must be specified.")
+        throw new NullPointerException("Param GATLING_COMMAND must be specified.")
     }
 
     if(RUN_TEST_ON_MASTER == true){
@@ -33,13 +33,13 @@ def buildDockerGatlingCommand(){
 TERRAFORM_CMD_PARAMS = null
 def buildTerraformParams(){
     if (TEST_ENV == null) {
-        throw NullPointerException("Param TEST_ENV must be specified.")
+        throw new NullPointerException("Param TEST_ENV must be specified.")
     }
     if (AWS_SUBNET_ID == null) {
-        throw NullPointerException("Param AWS_SUBNET_ID must be specified.")
+        throw new NullPointerException("Param AWS_SUBNET_ID must be specified.")
     }
     if (AWS_VPC_SECURITY_GROUP_IDS == null) {
-        throw NullPointerException("Param AWS_VPC_SECURITY_GROUP_IDS must be specified.")
+        throw new NullPointerException("Param AWS_VPC_SECURITY_GROUP_IDS must be specified.")
     }
     if (INSTANCE_TYPE == null) {
         echo "Param INSTANCE_TYPE is not specified, default 't2.micro'"
@@ -86,7 +86,7 @@ node("${NODE}"){
             try {
                 stage('Run test') {
                     sh """
-                        echo "Starting..."
+                        echo "Starting test..."
                         ${DOCKER_GATLING_COMMAND}
                     """
                 }
@@ -163,7 +163,9 @@ node("${NODE}"){
     } finally {
         // Success or failure, always send notifications
         // notifyBuild(currentBuild.result)
-        stopMonitoringContaner()
+        if(RUN_TEST_ON_MASTER == true){
+            stopMonitoringContaner()
+        }
     }
 }
 
