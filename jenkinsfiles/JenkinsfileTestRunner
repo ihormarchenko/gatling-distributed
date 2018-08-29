@@ -6,11 +6,11 @@ AWS_SUBNET_ID = params.AWS_SUBNET_ID ?: null
 AWS_VPC_SECURITY_GROUP_IDS = params.AWS_VPC_SECURITY_GROUP_IDS ?: null
 AWS_INSTANCE_COUNT = params.AWS_INSTANCE_COUNT ?: null
 
+
 GENERATE_HTML_REPORT = params.GENERATE_HTML_REPORT ?: false
 RUN_TEST_ON_MASTER = params.RUN_TEST_ON_MASTER ?: false
 GATLING_COMMAND = params.GATLING_COMMAND ?: false
 
-<<<<<<< HEAD
 
 
 DOCKER_GATLING_COMMAND = null
@@ -65,8 +65,6 @@ def stopContainer(){
         """
 }
 
-=======
->>>>>>> 83e494d76537fa8615853900a870ac6dd02adee8
 def isDestroyed = false
 node("${NODE}"){
     env.TERRAFORM_CMD = 'docker run --rm --network=host -w /app -v ${HOME}/.aws:/root/.aws -v ${HOME}/.ssh:/root/.ssh -v ${PWD}/terraform-scripts/gatling-node:/app hashicorp/terraform:light'
@@ -191,30 +189,10 @@ def notifyBuild(String buildStatus = 'STARTED') {
 def archiveAndGenerateReport(){
     try {
         stage('Archive report'){
-<<<<<<< HEAD
             sh"""
                 tar -czvf ${JOB_BASE_NAME}-`date '+%Y-%m-%d-%H%M%S'`.tar.gz ${WORKSPACE}/result/${JOB_BASE_NAME}
             """
             archiveArtifacts '${JOB_BASE_NAME}*.tar.gz'
-=======
-            sh '''
-                volume_ids=`docker volume ls --filter "name=gatling-logs" -q`
-                if [[ $volume_ids != "" ]]; then path=`docker volume inspect $volume_ids --format '{{ .Mountpoint }}'`; fi
-                for var in $path
-                do
-                sudo cp -r $var/${JOB_BASE_NAME} /tmp/
-                echo "Report was copied"
-                arhive_name=${JOB_BASE_NAME}`date '+%Y-%m-%d-%H:%M:%S'`.zip
-                arhive_path=/tmp/$arhive_name
-                sudo zip -r -9 $arhive_path /tmp/${JOB_BASE_NAME}/*
-                echo "Report was zipped"
-                sudo rm -rf /tmp/${JOB_BASE_NAME}/
-                echo "Report folder was deleted from temp"
-                cp $arhive_path ./$arhive_name
-                done
-            '''
-            archiveArtifacts '${JOB_BASE_NAME}*.zip'
->>>>>>> 83e494d76537fa8615853900a870ac6dd02adee8
         }
     } catch (Exception e) {
         echo "======================================"
@@ -223,7 +201,6 @@ def archiveAndGenerateReport(){
     }
 }
 
-<<<<<<< HEAD
 def runMonitoringContaner(){
     stage("Run monitoring container"){
         sh """
@@ -238,78 +215,3 @@ def stopMonitoringContaner(){
         """
     }
 }
-=======
-
-
-def deleteGatlingLog(){
-    try {
-        stage('Delete logfile'){
-            sh '''
-                volume_ids=`docker volume ls --filter "name=gatling-logs" -q`
-                if [[ $volume_ids != "" ]]; then path=`docker volume inspect $volume_ids --format '{{ .Mountpoint }}'`; fi
-                for var in $path
-                do
-                    sudo rm -rf $var/${JOB_BASE_NAME}
-                done
-            '''
-        }
-    } catch (Exception e) {
-        echo "======================================"
-        echo "Folder or file does not exist'"
-        echo e.getMessage()
-        echo "======================================"
-    }
-}
-
-DOCKER_GATLING_COMMAND = null
-def buildDockerGatlingCommand(){
-    if (GATLING_COMMAND == null) {
-        throw new NullPointerException("Param GATLING_COMMAND must be specified.")
-    }
-    DOCKER_GATLING_COMMAND = "docker run --rm --name '${JOB_BASE_NAME}-${BUILD_ID}' -v gatling-logs:/opt/gatling/results/ gatling/gatling-node -rf /opt/gatling/results/${JOB_BASE_NAME} ${GATLING_COMMAND}"
-    echo "DOCKER_GATLING_COMMAND=${DOCKER_GATLING_COMMAND}"
-}
-
-
-TERRAFORM_CMD_PARAMS = null
-def buildTerraformParams(){
-    if (TEST_ENV == null) {
-        throw new NullPointerException("Param TEST_ENV must be specified.")
-    }
-    if (AWS_SUBNET_ID == null) {
-        throw new NullPointerException("Param AWS_SUBNET_ID must be specified.")
-    }
-    if (AWS_VPC_SECURITY_GROUP_IDS == null) {
-        throw new NullPointerException("Param AWS_VPC_SECURITY_GROUP_IDS must be specified.")
-    }
-    if (INSTANCE_TYPE == null) {
-        echo "Param INSTANCE_TYPE is not specified, default 't2.micro'"
-        INSTANCE_TYPE = "t2.micro"
-    }
-    if (AWS_INSTANCE_COUNT == null) {
-        echo "Param AWS_INSTANCE_COUNT is not specified, default '1'"
-        AWS_INSTANCE_COUNT = "1"
-    }
-
-    TERRAFORM_CMD_PARAMS = "-var 'iam_instance_profile=${IAM_INSTANCE_PROFILE}' -var 'instance_type=${INSTANCE_TYPE}' -var 'env=${TEST_ENV}' -var 'subnet_id=${AWS_SUBNET_ID}' -var 'vpc_security_group_ids=${AWS_VPC_SECURITY_GROUP_IDS}' -var 'count=${AWS_INSTANCE_COUNT}'"
-}
-
-
-
-
-//Destroy terraform resources
-def destroyResources() {
-    stage('destroy') {
-        echo "Destroy resources"
-        sh  """
-            ${TERRAFORM_CMD} destroy -lock=false -input=true -auto-approve ${TERRAFORM_CMD_PARAMS}
-            """
-    }
-}
-
-def stopContainer(){
-    sh  """
-            docker stop "${JOB_BASE_NAME}-${BUILD_ID}"
-        """
-}
->>>>>>> 83e494d76537fa8615853900a870ac6dd02adee8
