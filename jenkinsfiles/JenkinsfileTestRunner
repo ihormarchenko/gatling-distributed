@@ -12,13 +12,13 @@ RUN_TEST_ON_MASTER = params.RUN_TEST_ON_MASTER ?: false
 GATLING_COMMAND = params.GATLING_COMMAND ?: false
 
 
-
+GATLING_VOLUME = null
 DOCKER_GATLING_COMMAND = null
 def buildDockerGatlingCommand(){
     if (GATLING_COMMAND == null) {
         throw NullPointerException("Param GATLING_COMMAND must be specified.")
     }
-    GATLING_VOLUME
+
     if(RUN_TEST_ON_MASTER == true){
         GATLING_VOLUME = "${WORKSPACE}/result/"
     }else{
